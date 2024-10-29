@@ -1,3 +1,4 @@
+import json
 def decodeRequestDetalhada(request):
     content = json.loads(request)
     itens = content['items']
@@ -23,7 +24,15 @@ def decodeRequestDetalhada(request):
         listaOrdenada.append(dicionarioDiario)
     return listaOrdenada
 
-def decodeRequestAdotada(request):
+def decodeRequestAdotada(request: bytes) -> list:
+    """_summary_
+
+    Args:
+        request (bytes): Resposta da requisição a API
+
+    Returns:
+        list: Lista de dicionarios com a data e medições correspondentes
+    """
     content = json.loads(request)
     itens = content['items']
     listaOrdenada = list()

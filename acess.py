@@ -112,7 +112,7 @@ class Acess:
         :return: Objeto 'response'.
         """
         url = self.urlApi + '/OAUth/v1'
-        headers = {'Identificador': self.id, 'Senha': self.senha}
+        headers = {'Identificador': self._id, 'Senha': self._senha}
         return requests.get(url=url, headers=headers)
 
     def forceRequestToken(self):
@@ -153,7 +153,7 @@ class Acess:
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = []
                 for param in params:
-                    tasks.append(_download_url(session, url, headers, param))
+                    tasks.append(_download_url(session, url, param))
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
@@ -161,8 +161,18 @@ class Acess:
             iteracao = iteracao + 1 
         return respostaLista
     
-    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict):
+    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict) -> list:
+        """_summary_
 
+        Args:
+            estacaoCodigo (int): Código da estação telemétrica
+            stringComeco (str): Data do começo do período
+            stringFinal (str): Data final do período (não incluida)
+            headers (dict): Bearer Token
+
+        Returns:
+            list: Cada item da lista corresponde a um conjunto de tasks realizadas simultaneamente. Cada item é uma lista com dados de dias diferentes.
+        """
         diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
         diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
 
@@ -177,20 +187,28 @@ class Acess:
         respostaLista = list()
         while(iteracao * qtdDias <= diasDownload):
             params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDias))
+            try:
+                async with aiohttp.ClientSession(headers=headers) as session:
+                    tasks = []
+                    for param in params:
+                        tasks.append(_download_url(session, url, param))
+                    resposta = await asyncio.gather(*tasks)
+                    respostaLista.append(resposta)
 
-            async with aiohttp.ClientSession(headers=headers) as session:
-                tasks = []
-                for param in params:
-                    tasks.append(_download_url(session, url, headers, param))
-                resposta = await asyncio.gather(*tasks)
-                respostaLista.append(resposta)
-
-            diaComeco = diaComeco + timedelta(days=qtdDias)
-            iteracao = iteracao + 1 
+                diaComeco = diaComeco + timedelta(days=qtdDias)
+                iteracao = iteracao + 1 
+            except asyncio.TimeoutError as e:
+                print("TIMEOUT")
+                print(e)
+            except ConnectionError as e:
+                print('ERRO DE CONEXAO. CONFIRA INTERNET')
+                print(e)
+            except Exception as e:
+                print(e) 
         return respostaLista
 
-async def _download_url(session, url, headers, params):
-    async with session.get(url, headers=headers, params=params) as response:
+async def _download_url(session, url, params): #precisa passar headers dnv ? Ja nao tem em session?
+    async with session.get(url, params=params) as response:
         return await response.content.read()
 
 
