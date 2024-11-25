@@ -1,0 +1,2 @@
+Rodar tudo: python -m pytest
+Rodar teste específico: python -m pytest -k "teste_especifico"
