@@ -133,7 +133,7 @@ class Acess:
             print("Não foi possível requisitar o token. Finalizando aplicação")
             exit()
 
-    async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict):
+    async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=None):
 
         diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
         diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
@@ -141,14 +141,15 @@ class Acess:
         #Total de dias que terão os dados baixados (se não exceder data atual. Ex: hoje ser dia 12/09 e tentar baixar até 31/12 pode dar erro)
         diasDownload = (diaFinal - diaComeco).days
 
-        qtdDias = self._defineQtdDownloadsSimultaneos(diasDownload)
+        if qtdDownloadsAsync == None:
+            qtdDownloadsAsync = self._defineQtdDownloadsSimultaneos(diasDownload)
 
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
 
         iteracao = 0
         respostaLista = list()
-        while(iteracao * qtdDias <= diasDownload):
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDias))
+        while(iteracao * qtdDownloadsAsync <= diasDownload):
+            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDownloadsAsync))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = []
@@ -157,11 +158,11 @@ class Acess:
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
-            diaComeco = diaComeco + timedelta(days=qtdDias)
+            diaComeco = diaComeco + timedelta(days=qtdDownloadsAsync)
             iteracao = iteracao + 1 
         return respostaLista
     
-    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict) -> list:
+    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=None) -> list:
         """_summary_
 
         Args:
@@ -179,14 +180,15 @@ class Acess:
         #Total de dias que terão os dados baixados (se não exceder data atual. Ex: hoje ser dia 12/09 e tentar baixar até 31/12 pode dar erro)
         diasDownload = (diaFinal - diaComeco).days
 
-        qtdDias = self._defineQtdDownloadsSimultaneos(diasDownload)
+        if qtdDownloadsAsync == None:
+            qtdDownloadsAsync = self._defineQtdDownloadsSimultaneos(diasDownload)
 
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaDetalhada/v1"
 
         iteracao = 0
         respostaLista = list()
-        while(iteracao * qtdDias <= diasDownload):
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDias))
+        while(iteracao * qtdDownloadsAsync <= diasDownload):
+            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDownloadsAsync))
             try:
                 async with aiohttp.ClientSession(headers=headers) as session:
                     tasks = []
@@ -195,7 +197,7 @@ class Acess:
                     resposta = await asyncio.gather(*tasks)
                     respostaLista.append(resposta)
 
-                diaComeco = diaComeco + timedelta(days=qtdDias)
+                diaComeco = diaComeco + timedelta(days=qtdDownloadsAsync)
                 iteracao = iteracao + 1 
             except asyncio.TimeoutError as e:
                 print("TIMEOUT")
@@ -207,20 +209,9 @@ class Acess:
                 print(e) 
         return respostaLista
 
-async def _download_url(session, url, params): #precisa passar headers dnv ? Ja nao tem em session?
+async def _download_url(session, url, params): 
     async with session.get(url, params=params) as response:
         return await response.content.read()
 
-
 if __name__ =='__main__':
-    acess = Acess()
-
-    x = datetime(2024, 1, 1)
-    print(x)
-    p = acess.criaParams(2, x, diaFinal=datetime(2024, 1, 10))
-
-    acess.lerCredenciais()
-
-
-    print(p)
-    print(len(p))
+    pass
