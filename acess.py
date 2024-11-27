@@ -50,17 +50,15 @@ class Acess:
 
         return paramsL
 
-    def _defineQtdDownloadsSimultaneos(self, diasDownload):
-        #Define a quantidade maxima de download simultaneos que serão realizados. 
-        # Muitos downloads simultaneos podem gerar problema ?????
-        # Valores arbitrários 
-        if diasDownload <= 100:
-            return 10
+    def _defineQtdDownloadsAsync(self, maxRequests, qtdDownloads)->int:
+        if qtdDownloads < maxRequests:
+            return qtdDownloads
         else:
-            return 20
+            return maxRequests
 
     def requestTelemetricaDetalhada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
         """
+        !!!Utilizar requestTelemetricaDetalhadaAsync!!!
         :param estacaoCodigo: Código de 8 dígitos
         :param data: Data dos dados requisitados. Formato yyyy-MM-dd.
         :param token: AcessToken adquirido
@@ -81,6 +79,7 @@ class Acess:
 
     def requestTelemetricaAdotada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
         """
+        !!!Utilizar versão requestTelemetricaAdotadaAsync!!!
         :param estacaoCodigo: Código de 8 dígitos
         :param data: Data dos dados requisitados. Formato yyyy-MM-dd.
         :param token: AcessToken adquirido
@@ -106,7 +105,7 @@ class Acess:
     
     def requestToken(self):
         """
-        Realiza o login com o ID e senha cadastrados pela Agência Nacional de Águas.
+        Requisita o token de autenticação da API com o ID e Senha
         :param id: Identificador cadastrado.
         :param password: Senha cadastrada.
         :return: Objeto 'response'.
@@ -115,41 +114,65 @@ class Acess:
         headers = {'Identificador': self._id, 'Senha': self._senha}
         return requests.get(url=url, headers=headers)
 
-    def forceRequestToken(self):
+    def forceRequestToken(self)->str:
+        """Realiza requisições até conseguir um token válido. Credenciais utilizadas 
 
-        token = self.requestToken()
+        Returns:
+            str: '-1' caso as credenciais não sejam válidas, se não str de token válido.
+        """
+        tokenRequest = self.requestToken()
         tentativas = 1  #melhorar lógica com TRY-EXCEPT (?)
-        while(token.status_code!=200 and tentativas <5):
-            token = self.requestToken()  
+        if (tokenRequest.status_code == 401): #Não autorizado, sem motivos tentar novamente.
+            return '-1'
+
+        while(tokenRequest.status_code!=200 and tentativas <5):
+            tokenRequest = self.requestToken()  
             tentativas = tentativas+1
 
-        print(token.status_code)
-
-        if(token.status_code==200):
-            token = json.loads(token.content)
+        if(tokenRequest.status_code==200):
+            token = json.loads(tokenRequest.content)
             itens = token['items']
             return itens['tokenautenticacao']
-        else:
-            print("Não foi possível requisitar o token. Finalizando aplicação")
-            exit()
 
-    async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=None):
+    async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20):
 
         diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
         diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
 
-        #Total de dias que terão os dados baixados (se não exceder data atual. Ex: hoje ser dia 12/09 e tentar baixar até 31/12 pode dar erro)
-        diasDownload = (diaFinal - diaComeco).days
-
-        if qtdDownloadsAsync == None:
-            qtdDownloadsAsync = self._defineQtdDownloadsSimultaneos(diasDownload)
+        diasRestantesParaDownload = (diaFinal - diaComeco).days
 
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
 
-        iteracao = 0
         respostaLista = list()
-        while(iteracao * qtdDownloadsAsync <= diasDownload):
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDownloadsAsync))
+        while(diasRestantesParaDownload != 0):
+            qtdRequisicoes = self._defineQtdDownloadsAsync(diasRestantesParaDownload, qtdDownloadsAsync)
+            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdRequisicoes))
+
+            async with aiohttp.ClientSession(headers=headers) as session:
+                tasks = []
+                for param in params:
+                    tasks.append(_download_url(session, url, param))
+                resposta = await asyncio.gather(*tasks)
+                respostaLista.append(resposta)
+            diaComeco = diaComeco + timedelta(days=qtdRequisicoes)
+
+            diasRestantesParaDownload = diasRestantesParaDownload - qtdRequisicoes
+
+        return respostaLista
+    
+    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20) -> list:
+
+        diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
+        diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
+
+        diasRestantesParaDownload = (diaFinal - diaComeco).days
+
+        url = self.urlApi + "/HidroinfoanaSerieTelemetricaDetalhada/v1"
+
+        respostaLista = list()
+        while(diasRestantesParaDownload != 0):
+            qtdRequisicoes = self._defineQtdDownloadsAsync(diasRestantesParaDownload, qtdDownloadsAsync)
+            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdRequisicoes))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = []
@@ -158,55 +181,10 @@ class Acess:
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
-            diaComeco = diaComeco + timedelta(days=qtdDownloadsAsync)
-            iteracao = iteracao + 1 
-        return respostaLista
-    
-    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=None) -> list:
-        """_summary_
+            diaComeco = diaComeco + timedelta(days=qtdRequisicoes)
 
-        Args:
-            estacaoCodigo (int): Código da estação telemétrica
-            stringComeco (str): Data do começo do período
-            stringFinal (str): Data final do período (não incluida)
-            headers (dict): Bearer Token
+            diasRestantesParaDownload = diasRestantesParaDownload - qtdRequisicoes
 
-        Returns:
-            list: Cada item da lista corresponde a um conjunto de tasks realizadas simultaneamente. Cada item é uma lista com dados de dias diferentes.
-        """
-        diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
-        diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
-
-        #Total de dias que terão os dados baixados (se não exceder data atual. Ex: hoje ser dia 12/09 e tentar baixar até 31/12 pode dar erro)
-        diasDownload = (diaFinal - diaComeco).days
-
-        if qtdDownloadsAsync == None:
-            qtdDownloadsAsync = self._defineQtdDownloadsSimultaneos(diasDownload)
-
-        url = self.urlApi + "/HidroinfoanaSerieTelemetricaDetalhada/v1"
-
-        iteracao = 0
-        respostaLista = list()
-        while(iteracao * qtdDownloadsAsync <= diasDownload):
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdDownloadsAsync))
-            try:
-                async with aiohttp.ClientSession(headers=headers) as session:
-                    tasks = []
-                    for param in params:
-                        tasks.append(_download_url(session, url, param))
-                    resposta = await asyncio.gather(*tasks)
-                    respostaLista.append(resposta)
-
-                diaComeco = diaComeco + timedelta(days=qtdDownloadsAsync)
-                iteracao = iteracao + 1 
-            except asyncio.TimeoutError as e:
-                print("TIMEOUT")
-                print(e)
-            except ConnectionError as e:
-                print('ERRO DE CONEXAO. CONFIRA INTERNET')
-                print(e)
-            except Exception as e:
-                print(e) 
         return respostaLista
 
 async def _download_url(session, url, params): 
