@@ -1,6 +1,6 @@
 import json
 def decodeRequestDetalhada(request):
-    content = json.loads(request)
+    content = json.loads(request.decode('latin-1'))
     itens = content['items']
     listaOrdenada = list()
     if itens != None:
@@ -33,7 +33,7 @@ def decodeRequestAdotada(request: bytes) -> list:
     Returns:
         list: Lista de dicionarios com a data e medições correspondentes
     """
-    content = json.loads(request)
+    content = json.loads(request.decode('latin-1'))
     itens = content['items']
     listaOrdenada = list()
     if itens != None:
