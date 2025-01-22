@@ -4,6 +4,8 @@ import aiohttp
 import asyncio
 from datetime import datetime, timedelta
 
+import time
+
 class Acess:
     def __init__(self, id=str(), senha=str()) -> None:
         self._id = id
@@ -21,6 +23,29 @@ class Acess:
         """
         self._senha = senha
         self._id=id
+
+    def _defineIntervaloBuscaLongo(self, qtdDiasDownload: int)->str:
+        """Define o melhor parâmetro para o campo "Range Intervalo de Busca" para longos períodos
+
+        Args:
+            qtdDiasDownload (int): Quantidade total de dias desejados
+
+        Returns:
+            str: Parâmetro para requisição
+        """
+
+        if qtdDiasDownload >= 30:
+            return "DIAS_30"
+        elif qtdDiasDownload >= 21:
+            return "DIAS_21"
+        elif qtdDiasDownload >= 14:
+            return "DIAS_14"
+        elif qtdDiasDownload >= 7:
+            return "DIAS_7"
+        elif qtdDiasDownload >= 2:
+            return "DIAS_2"
+        else:
+            return "HORA_24"
 
     def _criaParams(self, codEstacao: int, diaComeco: datetime, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA", **kwargs) -> list:
         """
@@ -50,11 +75,41 @@ class Acess:
 
         return paramsL
 
+    def paramUnico(self, codEstacao, filtroData, qtdDiasParam, dia):
+
+        intervaloBusca = self._defineIntervaloBuscaLongo(qtdDiasParam)
+        param = {
+            'Código da Estação': codEstacao,
+            'Tipo Filtro Data': filtroData,
+            'Data de Busca (yyyy-MM-dd)': datetime.strftime(dia, "%Y-%m-%d"),
+            'Range Intervalo de busca': intervaloBusca
+        }
+        return param
+
+
     def _defineQtdDownloadsAsync(self, maxRequests, qtdDownloads)->int:
         if qtdDownloads < maxRequests:
             return qtdDownloads
         else:
             return maxRequests
+
+    def _defQtdDiasParam(self, dataComeco: datetime, dataFinal: datetime)->int:
+        diferenca = (dataFinal - dataComeco).days
+
+        if diferenca >=30:
+            return 30
+        elif diferenca >= 21:
+            return 21
+        elif diferenca >= 14:
+            return 14
+        elif diferenca >= 7:
+            return 7
+        elif diferenca >=5:
+            return 5
+        elif diferenca >= 2:
+            return 2
+        else:
+            return 1
 
     def requestTelemetricaDetalhada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
         """
@@ -144,20 +199,25 @@ class Acess:
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
 
         respostaLista = list()
-        while(diasRestantesParaDownload != 0):
-            qtdRequisicoes = self._defineQtdDownloadsAsync(diasRestantesParaDownload, qtdDownloadsAsync)
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdRequisicoes))
+        qtdDiasParam = qtdDownloadsAsync+1 #garante que é maior
+
+        while diasRestantesParaDownload != 0 :
+            blocoAsync = list()
+
+            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
+                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
+                diaComeco += timedelta(days=qtdDiasParam)
+                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco))
 
             async with aiohttp.ClientSession(headers=headers) as session:
-                tasks = []
-                for param in params:
+                tasks = list()
+                for param in blocoAsync:
                     tasks.append(_download_url(session, url, param))
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
-            diaComeco = diaComeco + timedelta(days=qtdRequisicoes)
 
-            diasRestantesParaDownload = diasRestantesParaDownload - qtdRequisicoes
-
+            diasRestantesParaDownload = (diaFinal - diaComeco).days
+            
         return respostaLista
     
     async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20) -> list:
@@ -170,21 +230,25 @@ class Acess:
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaDetalhada/v1"
 
         respostaLista = list()
-        while(diasRestantesParaDownload != 0):
-            qtdRequisicoes = self._defineQtdDownloadsAsync(diasRestantesParaDownload, qtdDownloadsAsync)
-            params = self._criaParams(estacaoCodigo, diaComeco, diaFinal=diaComeco+timedelta(days=qtdRequisicoes))
+        qtdDiasParam = qtdDownloadsAsync+1 #garante que é maior
+
+        while diasRestantesParaDownload != 0 :
+            blocoAsync = list()
+
+            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
+                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
+                diaComeco += timedelta(days=qtdDiasParam)
+                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco))
 
             async with aiohttp.ClientSession(headers=headers) as session:
-                tasks = []
-                for param in params:
+                tasks = list()
+                for param in blocoAsync:
                     tasks.append(_download_url(session, url, param))
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
-            diaComeco = diaComeco + timedelta(days=qtdRequisicoes)
-
-            diasRestantesParaDownload = diasRestantesParaDownload - qtdRequisicoes
-
+            diasRestantesParaDownload = (diaFinal - diaComeco).days
+            
         return respostaLista
 
 async def _download_url(session, url, params): 
