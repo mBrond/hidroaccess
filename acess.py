@@ -207,7 +207,7 @@ class Acess:
             while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
                 qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
                 diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco))
+                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = list()
@@ -238,7 +238,7 @@ class Acess:
             while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
                 qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
                 diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco))
+                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = list()
