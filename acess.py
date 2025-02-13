@@ -2,9 +2,8 @@ import json
 import requests
 import aiohttp
 import asyncio
+import warnings
 from datetime import datetime, timedelta
-
-import time
 
 class Acess:
     def __init__(self, id=str(), senha=str()) -> None:
@@ -14,6 +13,12 @@ class Acess:
         self.pathResultados = '\\medicoes'
         self.pathConfigs = 'configs.json'
 
+    def _set_senha(self, senha=str()) -> None:
+        self._senha = senha
+
+    def _set_id(self, id=str()) -> None:
+        self._id = id
+
     def atualizarCredenciais(self, id=str(), senha=str()) -> None:
         """Atualiza as credencias salvas no objeto
 
@@ -21,8 +26,8 @@ class Acess:
             id (str, optional): _description_. Defaults to str().
             senha (str, optional): _description_. Defaults to str().
         """
-        self._senha = senha
-        self._id=id
+        self._set_senha(senha)
+        self._set_id(id)
 
     def _defineIntervaloBuscaLongo(self, qtdDiasDownload: int)->str:
         """Define o melhor parâmetro para o campo "Range Intervalo de Busca" para longos períodos
@@ -33,19 +38,17 @@ class Acess:
         Returns:
             str: Parâmetro para requisição
         """
-
-        if qtdDiasDownload >= 30:
-            return "DIAS_30"
-        elif qtdDiasDownload >= 21:
-            return "DIAS_21"
-        elif qtdDiasDownload >= 14:
-            return "DIAS_14"
-        elif qtdDiasDownload >= 7:
-            return "DIAS_7"
-        elif qtdDiasDownload >= 2:
-            return "DIAS_2"
-        else:
-            return "HORA_24"
+        intervalos = [
+            (30, "DIAS_30"),
+            (21, "DIAS_21"),
+            (14, "DIAS_14"),
+            (7, "DIAS_7"),
+            (2, "DIAS_2"),
+            (0, "HORA_24")
+        ]
+        for dias, intervalo in intervalos:
+            if qtdDiasDownload >= dias:
+                return intervalo
 
     def _criaParams(self, codEstacao: int, diaComeco: datetime, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA", **kwargs) -> list:
         """
@@ -86,7 +89,6 @@ class Acess:
         }
         return param
 
-
     def _defineQtdDownloadsAsync(self, maxRequests, qtdDownloads)->int:
         if qtdDownloads < maxRequests:
             return qtdDownloads
@@ -122,6 +124,8 @@ class Acess:
         :return: Objeto 'response'.
         """
 
+        warnings.warn("'requestTelemetricaDetalhada' é um método obsoleto e será removido!", category=DeprecationWarning, stacklevel=2)
+
         url = self.urlApi+ "/HidroinfoanaSerieTelemetricaDetalhada/v1"
 
         headers = {
@@ -142,6 +146,8 @@ class Acess:
         :param intervaloBusca: Intervalo das medições.
         :return: Objeto 'response'.
         """ 
+
+        warnings.warn("'requestTelemetricaAdotada' é um método obsoleto e será removido!", category=DeprecationWarning, stacklevel=2)
 
         url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
 
