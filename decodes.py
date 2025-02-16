@@ -1,4 +1,13 @@
 import json
+import pandas as pd
+
+def decode_list_bytes(listaRespostaTasks: list, tipo='Adotada')->list:
+    for request in listaRespostaTasks:
+        if tipo == 'Adotada':
+            return decodeRequestAdotada(request)
+        elif tipo =='Detalhada':
+            return decodeRequestDetalhada(request)
+
 def decodeRequestDetalhada(request):
     content = json.loads(request.decode('latin-1'))
     itens = content['items']
@@ -6,7 +15,7 @@ def decodeRequestDetalhada(request):
     if itens != None:
         for item in itens:
             dicionarioDiario = dict()
-            dicionarioDiario["Hora_medicao"] = item['Data_Hora_Medicao']
+            dicionarioDiario["Hora_Medicao"] = item['Data_Hora_Medicao']
             dicionarioDiario["Chuva_Acumulada"] = item["Chuva_Acumulada"]
             dicionarioDiario["Chuva_Adotada"] = item["Chuva_Adotada"]
             dicionarioDiario["Cota_Adotada"] = item["Cota_Adotada"]
@@ -15,7 +24,7 @@ def decodeRequestDetalhada(request):
             listaOrdenada.append(dicionarioDiario)
     else:
         dicionarioDiario = dict()
-        dicionarioDiario["Hora_medicao"] = None
+        dicionarioDiario["Hora_Medicao"] = None
         dicionarioDiario["Chuva_Acumulada"] = None
         dicionarioDiario["Chuva_Adotada"] = None
         dicionarioDiario["Cota_Adotada"] = None

@@ -3,21 +3,22 @@ import requests
 import aiohttp
 import asyncio
 import warnings
+import decodes
 from datetime import datetime, timedelta
 
 class Acess:
     def __init__(self, id=str(), senha=str()) -> None:
-        self._id = id
-        self._senha = senha
+        self.__id = id
+        self.__senha = senha
         self.urlApi = 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas'
         self.pathResultados = '\\medicoes'
         self.pathConfigs = 'configs.json'
 
     def _set_senha(self, senha=str()) -> None:
-        self._senha = senha
+        self.__senha = senha
 
     def _set_id(self, id=str()) -> None:
-        self._id = id
+        self.__id = id
 
     def atualizarCredenciais(self, id=str(), senha=str()) -> None:
         """Atualiza as credencias salvas no objeto
@@ -52,6 +53,7 @@ class Acess:
 
     def _criaParams(self, codEstacao: int, diaComeco: datetime, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA", **kwargs) -> list:
         """
+        !!OBSOLETO!!
         :param codEstacao: Codigo da estacao
         :param diaComeco:
         :param intervaloBusca: [OPCIONAL] 
@@ -78,7 +80,7 @@ class Acess:
 
         return paramsL
 
-    def paramUnico(self, codEstacao, filtroData, qtdDiasParam, dia):
+    def _param_unico(self, codEstacao, filtroData, qtdDiasParam, dia):
 
         intervaloBusca = self._defineIntervaloBuscaLongo(qtdDiasParam)
         param = {
@@ -113,6 +115,27 @@ class Acess:
         else:
             return 1
 
+    def _validar_data(self, data: str) ->datetime:
+        try:
+            return datetime.strptime(data, "%Y-%m-%d")
+        except:
+            raise ValueError(f"Parâmetro 'dataFinal' inválido: {dataFinal}. Deve ser 'YYYY-MM-DD'.")
+
+    def _criar_cabecalho(self, token: str) -> dict:
+        """Cria o cabeçalho da requisição http
+
+        Args:
+            token (str): token de validação do usuário
+
+        Returns:
+            dict: Cebeçalho pronto para requisição
+        """
+        if token != '-1':
+            return {'Authorization': f'Bearer {token}'}
+
+        raise ValueError(f"Token inválido: {token}.")
+
+    #deprecated
     def requestTelemetricaDetalhada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
         """
         !!!Utilizar requestTelemetricaDetalhadaAsync!!!
@@ -136,6 +159,7 @@ class Acess:
 
         return requests.get(url=url, headers = headers, params = params)
 
+    #deprecated
     def requestTelemetricaAdotada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
         """
         !!!Utilizar versão requestTelemetricaAdotadaAsync!!!
@@ -172,7 +196,7 @@ class Acess:
         :return: Objeto 'response'.
         """
         url = self.urlApi + '/OAUth/v1'
-        headers = {'Identificador': self._id, 'Senha': self._senha}
+        headers = {'Identificador': self.__id, 'Senha': self.__senha}
         return requests.get(url=url, headers=headers)
 
     def forceRequestToken(self)->str:
@@ -195,7 +219,10 @@ class Acess:
             itens = token['items']
             return itens['tokenautenticacao']
 
+    #deprecated
     async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20):
+
+        warnings.warn("'requestTelemetricaAdotadaAsync' é um método obsoleto e será removido! Utilize request_telemetrica.", category=DeprecationWarning, stacklevel=2)
 
         diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
         diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
@@ -213,12 +240,12 @@ class Acess:
             while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
                 qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
                 diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
+                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = list()
                 for param in blocoAsync:
-                    tasks.append(_download_url(session, url, param))
+                    tasks.append(self._download_url(session, url, param))
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
@@ -226,7 +253,11 @@ class Acess:
             
         return respostaLista
     
+    #deprecated
     async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20) -> list:
+
+        warnings.warn("'requestTelemetricaDetalhadaAsync' é um método obsoleto e será removido! Utilize request_telemetrica.", category=DeprecationWarning, stacklevel=2)
+
 
         diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
         diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
@@ -244,12 +275,12 @@ class Acess:
             while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
                 qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
                 diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self.paramUnico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
+                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
 
             async with aiohttp.ClientSession(headers=headers) as session:
                 tasks = list()
                 for param in blocoAsync:
-                    tasks.append(_download_url(session, url, param))
+                    tasks.append(self._download_url(session, url, param))
                 resposta = await asyncio.gather(*tasks)
                 respostaLista.append(resposta)
 
@@ -257,9 +288,58 @@ class Acess:
             
         return respostaLista
 
-async def _download_url(session, url, params): 
-    async with session.get(url, params=params) as response:
-        return await response.content.read()
+    async def request_telemetrica(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo='Adotada', qtdDownloadsAsync=20) -> list:
+        """_summary_
+
+        Args:
+            estacaoCodigo (int): Código da estação para consulta.
+            dataComeco (str): Data inicial do período a ser consultado.
+            dataFinal (str): Data final do período a ser consultado.
+            cabecalho (dict): _description_
+            tipo (str, optional): _description_. Defaults to 'Adotada'.
+            qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
+
+        Returns:
+            list: _description_
+        """
+        if tipo not in {"Adotada", "Detalhada"}:
+            raise ValueError(f"Parâmetro 'tipo' inválido: {tipo}. Deve ser 'Adotada' ou 'Detalhada'")
+
+        diaFinal = self._validar_data(dataFinal)
+        diaComeco = self._validar_data (dataComeco)
+
+        cabecalho = self._criar_cabecalho(token)
+
+        diasRestantesParaDownload = (diaFinal - diaComeco).days
+
+        listaRespostaTasks = list()
+
+        url = self.urlApi + f"/HidroinfoanaSerieTelemetrica{tipo}/v1"
+
+        while diasRestantesParaDownload != 0 :
+            blocoAsync = list()
+
+            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
+                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
+                diaComeco += timedelta(days=qtdDiasParam)
+                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
+
+            async with aiohttp.ClientSession(headers=cabecalho) as session:
+                tasks = list()
+                for param in blocoAsync:
+                    tasks.append(self._download_url(session, url, param))
+                respostaTasks = await asyncio.gather(*tasks)
+                listaRespostaTasks.extend(respostaTasks)
+
+            diasRestantesParaDownload = (diaFinal - diaComeco).days
+
+        resposta = decodes.decode_list_bytes(listaRespostaTasks, tipo)
+
+        return resposta
+
+    async def _download_url(self, session, url, params): 
+        async with session.get(url, params=params) as response:
+            return await response.content.read()
 
 if __name__ =='__main__':
     pass

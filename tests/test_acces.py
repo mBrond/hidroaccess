@@ -1,4 +1,4 @@
-from acess import Acess
+from access import Acess
 from datetime import datetime
 import pytest
 import asyncio
@@ -48,19 +48,22 @@ def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido
                 assert contentDia['code'] == 200
     assert True
 
-#ultimo dia nao incluso
-@pytest.mark.parametrize('diaComeco, diaFinal, maxRequest, qtdDiasEsperado', [
-    ('2024-01-01', '2024-01-03', 20, 2),
-    ('2024-02-01', '2024-02-27', 20, 26)])
+@pytest.mark.parametrize("chavesEsperadas, tipo", [
+        (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada']), 'Adotada'),
+        (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada', 'Chuva_Acumulada', 'Cota_Sensor']), 'Detalhada')
+])
 
-def test_QtdDownloads(diaComeco, diaFinal, maxRequest, qtdDiasEsperado):
-    acesso = login_valido()
-    headers = {'Authorization': 'Bearer {}'.format(acesso.forceRequestToken())}
-    ListaListaRespostas = asyncio.run(acesso.requestTelemetricaDetalhadaAsync(76310000, diaComeco, diaFinal, headers, qtdDownloadsAsync=maxRequest))
-    somaDiasBaixados = 0
-    for lista in ListaListaRespostas:
-        somaDiasBaixados = somaDiasBaixados + len(lista)
-    assert qtdDiasEsperado == somaDiasBaixados
+def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo):
+    acesso = login_valido_fixture
+
+    token = acesso.forceRequestToken()
+
+    retorno = asyncio.run(acesso.request_telemetrica(85900000, '2020-01-01', '2020-01-5', token, tipo))
+    for item in retorno:
+        chavesRetorno = item.keys()
+        if chavesEsperadas != set(chavesRetorno):
+            assert False
+    assert True
 
 @pytest.mark.parametrize('diaInicio, diaFim, resultado', [
     ('2024-01-01', '2024-03-01', 30),
@@ -75,4 +78,4 @@ def test__defQtdDiasParam(diaInicio, diaFim, resultado):
     acesso = login_valido()
 
     resposta = acesso._defQtdDiasParam(datetime.strptime(diaInicio, "%Y-%m-%d"), datetime.strptime(diaFim, "%Y-%m-%d"))
-    assert resultado == resposta
+    assert resposta == resultado
