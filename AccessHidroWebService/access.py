@@ -3,10 +3,10 @@ import requests
 import aiohttp
 import asyncio
 import warnings
-import decodes
+import AccessHidroWebService.decodes as decodes
 from datetime import datetime, timedelta
 
-class Acess:
+class Access:
     def __init__(self, id=str(), senha=str()) -> None:
         self.__id = id
         self.__senha = senha

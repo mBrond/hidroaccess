@@ -1,4 +1,4 @@
-from access import Acess
+from AccessHidroWebService.access import Access
 from datetime import datetime
 import pytest
 import asyncio
@@ -10,7 +10,7 @@ def login_valido():
     f.seek(13)
     senha = f.read(8)
     f.close()
-    return Acess(str(login), str(senha))
+    return Access(str(login), str(senha))
 
 @pytest.fixture
 def login_valido_fixture():
@@ -21,7 +21,7 @@ def estacao_valida():
     return 76310000
 
 def login_invalido():
-    return Acess('1', '123')
+    return Access('1', '123')
 
 @pytest.mark.parametrize("acesso, validade", [
     (login_valido(), True),
