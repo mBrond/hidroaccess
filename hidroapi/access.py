@@ -3,7 +3,7 @@ import requests
 import aiohttp
 import asyncio
 import warnings
-import AccessHidroWebService.decodes as decodes
+import hidroapi.decodes as decodes
 from datetime import datetime, timedelta
 
 class Access:
@@ -206,11 +206,12 @@ class Access:
             str: '-1' caso as credenciais não sejam válidas, se não str de token válido.
         """
         tokenRequest = self.requestToken()
-        tentativas = 1  #melhorar lógica com TRY-EXCEPT (?)
+        tentativas = 1  #TODO melhorar lógica com TRY-EXCEPT (?)
+        print(tokenRequest)
         if (tokenRequest.status_code == 401): #Não autorizado, sem motivos tentar novamente.
             return '-1'
 
-        while(tokenRequest.status_code!=200 and tentativas <5):
+        while(tokenRequest.status_code!=200 and tentativas <5): #TODO recursividade 
             tokenRequest = self.requestToken()  
             tentativas = tentativas+1
 

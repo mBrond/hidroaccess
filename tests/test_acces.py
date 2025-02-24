@@ -1,4 +1,4 @@
-from AccessHidroWebService.access import Access
+from hidroapi.access import Access
 from datetime import datetime
 import pytest
 import asyncio
@@ -34,7 +34,9 @@ def test_forceRequestToken(acesso, validade):
     else:
         assert acesso.forceRequestToken() == '-1'#valor erro
 
+#DEPRECATED
 def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido_fixture):
+    #DEPRECATED
     acesso = login_valido_fixture
 
     headers = {'Authorization': 'Bearer {}'.format(acesso.forceRequestToken())}
@@ -52,7 +54,6 @@ def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido
         (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada']), 'Adotada'),
         (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada', 'Chuva_Acumulada', 'Cota_Sensor']), 'Detalhada')
 ])
-
 def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo):
     acesso = login_valido_fixture
 

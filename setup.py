@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="AccessHidroWebService",
+    name="hidroapi",
     version="0.1.0",
     author="Miguel Brondani",
     author_email="brondani.miguel@gmail.com",
