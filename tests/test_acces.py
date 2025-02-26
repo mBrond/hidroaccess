@@ -28,18 +28,18 @@ def login_invalido():
     (login_invalido(), False)
 ])
 
-def test_forceRequestToken(acesso, validade):
+def test_safe_request_token(acesso, validade):
     if validade:
-        assert acesso.forceRequestToken() != '-1'#valor do token
+        assert acesso.safe_request_token() != '-1'#valor do token
     else:
-        assert acesso.forceRequestToken() == '-1'#valor erro
+        assert acesso.safe_request_token() == '-1'#valor erro
 
 #DEPRECATED
 def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido_fixture):
     #DEPRECATED
     acesso = login_valido_fixture
 
-    headers = {'Authorization': 'Bearer {}'.format(acesso.forceRequestToken())}
+    headers = {'Authorization': 'Bearer {}'.format(acesso.safe_request_token())}
 
     ListaListaRespostas = asyncio.run(acesso.requestTelemetricaDetalhadaAsync(76310000, '2024-01-01', '2024-01-03', headers))
     for resposta in ListaListaRespostas:
@@ -57,7 +57,7 @@ def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido
 def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo):
     acesso = login_valido_fixture
 
-    token = acesso.forceRequestToken()
+    token = acesso.safe_request_token()
 
     retorno = asyncio.run(acesso.request_telemetrica(85900000, '2020-01-01', '2020-01-5', token, tipo))
     for item in retorno:
@@ -80,3 +80,21 @@ def test__defQtdDiasParam(diaInicio, diaFim, resultado):
 
     resposta = acesso._defQtdDiasParam(datetime.strptime(diaInicio, "%Y-%m-%d"), datetime.strptime(diaFim, "%Y-%m-%d"))
     assert resposta == resultado
+
+@pytest.mark.parametrize('data, validade', [
+    ('2024-01-01', True),
+    ('2024-01-32', False),
+    ('2015-02-30', False),
+    ('12-12-2024', False),
+    (12, False),
+    ('12/12/12', False),
+    ('2024/12/12', False) 
+])
+def test__validar_data(data, validade):
+    acesso = Access('a', 'a')
+    try:
+        acesso._validar_data(data)
+    except ValueError:
+        assert validade == False
+    else:
+        assert validade == True

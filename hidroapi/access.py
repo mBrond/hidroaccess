@@ -119,7 +119,7 @@ class Access:
         try:
             return datetime.strptime(data, "%Y-%m-%d")
         except:
-            raise ValueError(f"Parâmetro 'dataFinal' inválido: {dataFinal}. Deve ser 'YYYY-MM-DD'.")
+            raise ValueError(f"Parâmetro 'data' inválido: {data}. Deve ser 'YYYY-MM-DD'.")
 
     def _criar_cabecalho(self, token: str) -> dict:
         """Cria o cabeçalho da requisição http
@@ -199,7 +199,7 @@ class Access:
         headers = {'Identificador': self.__id, 'Senha': self.__senha}
         return requests.get(url=url, headers=headers)
 
-    def forceRequestToken(self)->str:
+    def safe_request_token(self)->str:
         """Realiza requisições até conseguir um token válido. Credenciais utilizadas 
 
         Returns:
