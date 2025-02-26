@@ -9,7 +9,7 @@ Snipet de código
 
     sessao =  Access("ID", "SENHA")
     acesso = login_valido_fixture
-    token = acesso.forceRequestToken()
+    token = acesso.safe_request_token()
     tipo = 'Adotada'
     retorno = asyncio.run(acesso.request_telemetrica(85900000, '2020-01-01', '2020-01-5', token, tipo))
 ```
