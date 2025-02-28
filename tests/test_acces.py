@@ -1,8 +1,6 @@
-from hidroapi.access import Access
+from hidroaccess.access import Access
 from datetime import datetime
 import pytest
-import asyncio
-import json
 
 def login_valido():
     f = open('tests//credenciais.txt', 'r')
@@ -34,22 +32,6 @@ def test_safe_request_token(acesso, validade):
     else:
         assert acesso.safe_request_token() == '-1'#valor erro
 
-#DEPRECATED
-def test_requestTelemetricaDetalhadaAsync_realiza_requisicao_valida(login_valido_fixture):
-    #DEPRECATED
-    acesso = login_valido_fixture
-
-    headers = {'Authorization': 'Bearer {}'.format(acesso.safe_request_token())}
-
-    ListaListaRespostas = asyncio.run(acesso.requestTelemetricaDetalhadaAsync(76310000, '2024-01-01', '2024-01-03', headers))
-    for resposta in ListaListaRespostas:
-        for dia in resposta:
-            contentDia = json.loads(dia) #dict
-            print(contentDia)
-            if contentDia['status'] != 'OK':
-                assert contentDia['code'] == 200
-    assert True
-
 @pytest.mark.parametrize("chavesEsperadas, tipo", [
         (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada']), 'Adotada'),
         (set(['Hora_Medicao', 'Chuva_Adotada', 'Cota_Adotada', 'Vazao_Adotada', 'Chuva_Acumulada', 'Cota_Sensor']), 'Detalhada')
@@ -59,7 +41,7 @@ def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo)
 
     token = acesso.safe_request_token()
 
-    retorno = asyncio.run(acesso.request_telemetrica(85900000, '2020-01-01', '2020-01-5', token, tipo))
+    retorno = acesso.request_telemetrica(85900000, '2020-01-01', '2020-01-5', token, tipo)
     for item in retorno:
         chavesRetorno = item.keys()
         if chavesEsperadas != set(chavesRetorno):

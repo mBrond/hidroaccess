@@ -3,16 +3,14 @@ import requests
 import aiohttp
 import asyncio
 import warnings
-import hidroapi.decodes as decodes
+import hidroaccess.decodes as decodes
 from datetime import datetime, timedelta
 
 class Access:
-    def __init__(self, id=str(), senha=str()) -> None:
+    def __init__(self, id: str, senha: str) -> None:
         self.__id = id
         self.__senha = senha
         self.urlApi = 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas'
-        self.pathResultados = '\\medicoes'
-        self.pathConfigs = 'configs.json'
 
     def _set_senha(self, senha=str()) -> None:
         self.__senha = senha
@@ -20,7 +18,7 @@ class Access:
     def _set_id(self, id=str()) -> None:
         self.__id = id
 
-    def atualizarCredenciais(self, id=str(), senha=str()) -> None:
+    def atualizar_credenciais(self, id: str, senha: str) -> None:
         """Atualiza as credencias salvas no objeto
 
         Args:
@@ -207,7 +205,6 @@ class Access:
         """
         tokenRequest = self.requestToken()
         tentativas = 1  #TODO melhorar lógica com TRY-EXCEPT (?)
-        print(tokenRequest)
         if (tokenRequest.status_code == 401): #Não autorizado, sem motivos tentar novamente.
             return '-1'
 
@@ -289,7 +286,7 @@ class Access:
             
         return respostaLista
 
-    async def request_telemetrica(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo='Adotada', qtdDownloadsAsync=20) -> list:
+    async def _main_request_telemetrica(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo='Adotada', qtdDownloadsAsync=20) -> list:
         """_summary_
 
         Args:
@@ -337,6 +334,22 @@ class Access:
         resposta = decodes.decode_list_bytes(listaRespostaTasks, tipo)
 
         return resposta
+
+    def request_telemetrica(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo='Adotada', qtdDownloadsAsync=20) -> list:
+        """_summary_
+
+        Args:
+            estacaoCodigo (int): Código da estação para consulta.
+            dataComeco (str): Data inicial do período a ser consultado.
+            dataFinal (str): Data final do período a ser consultado.
+            cabecalho (dict): _description_
+            tipo (str, optional): _description_. Defaults to 'Adotada'.
+            qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
+
+        Returns:
+            list: Lista de dicionários.
+        """
+        return asyncio.run(self._main_request_telemetrica(estacaoCodigo, dataComeco, dataFinal, token, tipo, qtdDownloadsAsync))
 
     async def _download_url(self, session, url, params): 
         async with session.get(url, params=params) as response:

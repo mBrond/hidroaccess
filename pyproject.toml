@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hidroaccess_mBrond"
+version = "0.1.0"
+authors = [
+  { name="Miguel Brondani", email="brondani.miguel@gmail.com" },
+]
+description = "Pacote para download de dados da ANA"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+license = { text = "MIT" }
+
+[project.urls]
+Homepage = "https://github.com/mBrond/AccessHidroWebService"
+Issues = "https://github.com/mBrond/AccessHidroWebService/issues"
