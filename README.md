@@ -9,7 +9,6 @@
     - [safe_request_token](#método-safe_request_token)
     - [request_telemetrica](#método-request_telemetrica)
     - [atualizar_credenciais](#método-atualizar_credenciais-confirmar-código)
-
 - [Contato](#contato)
 
 # Sobre 
@@ -27,9 +26,9 @@ Também é possível acessar o código fonte e as versões de desenvolvimento at
 ## Classe *Access*
 A classe Access funciona como uma 'sessão', através dela as comunicações com a API são realizadas. Os parâmetros de inicialização são seus ID e Senhas adquiridos previamente.
 ```
-from hidroaccess import access
+from hidroaccess.access import Access
 
-sessao = access.Access("SEU_ID", "SUA_SENHA")
+sessao = Access("SEU_ID", "SUA_SENHA")
 ```
 
 ## Método *safe_request_token()*
@@ -38,15 +37,13 @@ Retorna um token (str) para validação de outras requisições. A obtenção do
 token = sessao.safe_request_token()
 ```
 ## Método *request_telemetrica()*
-Obtem dados de uma estação telemétrica. Parâmetros:
+Retorna uma lista de dicionários. Cada dicionário possui a chave 'Hora_Medicao' com a data e horário da medição correspondente.
 
 - estacao_codigo (int): valor númerico de oito dígitos correspondente a estação para consulta desejada
 - data_inicio (str): data inicial do período de consulta no formato YYYY-MM-DD
 - data_fim (str): data final do período de consulta no formato YYYY-MM-DD
 - token (str): token válido adquirido em *safe_request_token()* 
 - tipo_dado ('Adotada' ou 'Detalhada'): Opcional, por padrão as requisições solicitam os dados Adotados. Os dados Detalhados retornam mais variáveis. 
-
-Retorno: Lista de dicionários. Cada dicionário possui a chave 'Hora_Medicao' com a data e horário da medição correspondente.
 
 ```
 estacao_codigo = 85900000
@@ -57,7 +54,7 @@ tipo_dado = 'Detalhada'
 retorno = sessao.request_telemetrica(estacao_codigo, data_inicio, data_fim, token, tipo_dado)
 ```
 
-## Método *atualizar_credenciais()* CONFIRMAR CÓDIGO
+## Método *atualizar_credenciais()*
 Sobreescreve as credenciais utilizadas para criar o objeto.
 ```
 sessao.atualizar_credenciais("NOVO ID", "NOVA SENHA")
@@ -65,6 +62,6 @@ sessao.atualizar_credenciais("NOVO ID", "NOVA SENHA")
 
 # Contato
 Para mais informações sobre o projeto, sugestões ou reportar erros:
-- Desenvolvedor: brondani.miguel@gmail.com
-- Grupo de Pesquisa: eco@ecotecnologias.org
-- [Github](https://github.com/mBrond/hidroaccess)
+- Miguel Brondani - Desenvolvedor: brondani.miguel@gmail.com
+- Ecotecnologias - Grupo de Pesquisa: eco@ecotecnologias.org
+- https://github.com/mBrond/hidroaccess

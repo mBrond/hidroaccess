@@ -48,6 +48,12 @@ def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo)
             assert False
     assert True
 
+def test_request_telemetrica_fake_token():
+    sessao = Access('a', 'b')
+    token = '-1'
+    retorno = sessao.request_telemetrica(85900000, '2024-01-01', '2024-01-02', token) 
+
+
 @pytest.mark.parametrize('diaInicio, diaFim, resultado', [
     ('2024-01-01', '2024-03-01', 30),
     ('2024-01-01', '2024-01-04', 2),
