@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setup(
     name="hidroaccess ",
-    version="0.1.0",
+    version="1.0.0",
     author="Miguel Brondani",
     author_email="brondani.miguel@gmail.com",
     description="Pacote python para facilitar o acesso a API HidroWebService",
@@ -37,5 +37,6 @@ setup(
         "Source": "https://github.com/mBrond/AccessHidroWebService",
     },
     license="MIT",
+    license_files=("LICENSE"), 
     include_package_data=True,
 )
