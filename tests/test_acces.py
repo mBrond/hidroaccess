@@ -48,11 +48,11 @@ def test_request_telemetrica_valida(login_valido_fixture, chavesEsperadas, tipo)
             assert False
     assert True
 
-def test_request_telemetrica_fake_token():
+def test__criar_cabecalho():
     sessao = Access('a', 'b')
-    token = '-1'
-    retorno = sessao.request_telemetrica(85900000, '2024-01-01', '2024-01-02', token) 
-
+    token = "-1"
+    with pytest.raises(ValueError, match="Token inválido: -1"):
+        sessao._criar_cabecalho(token)
 
 @pytest.mark.parametrize('diaInicio, diaFim, resultado', [
     ('2024-01-01', '2024-03-01', 30),
@@ -86,3 +86,29 @@ def test__validar_data(data, validade):
         assert validade == False
     else:
         assert validade == True
+
+
+
+#testa se os dias solicitados foram baixados
+@pytest.mark.parametrize('diaInicial, diaFim, qtdDias',[
+    ('2024-01-01', '2024-01-03', 2),
+    ('2024-01-01', '2024-02-01', 31),
+    ('2024-01-01', '2024-02-04', 34),
+    ('2024-01-01', '2024-01-06', 5),
+    ('2024-01-01', '2024-01-23', 22),
+    ('2024-01-01', '2024-01-18', 17)
+
+])
+def test_request_telemetrica_dias_baixados(login_valido_fixture, diaInicial, diaFim, qtdDias):
+    diasRetornados = set()
+    acesso = login_valido_fixture
+
+    token = acesso.safe_request_token()
+
+    retorno = acesso.request_telemetrica(85900000, diaInicial, diaFim, token, 'Adotada')
+    for item in retorno:
+        diaHora = item['Hora_Medicao']
+        dia = diaHora[:11]
+        diasRetornados.add(dia)
+
+    assert qtdDias == len(diasRetornados)

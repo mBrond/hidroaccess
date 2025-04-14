@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hidroaccess_mBrond"
+name = "hidroaccess"
 version = "1.0.0"
 authors = [
   { name="Miguel Brondani", email="brondani.miguel@gmail.com" },

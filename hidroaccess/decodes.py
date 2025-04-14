@@ -2,11 +2,14 @@ import json
 import pandas as pd
 
 def decode_list_bytes(listaRespostaTasks: list, tipo='Adotada')->list:
+    retorno = list()
     for request in listaRespostaTasks:
         if tipo == 'Adotada':
-            return decodeRequestAdotada(request)
+            retorno.extend(decodeRequestAdotada(request))
         elif tipo =='Detalhada':
-            return decodeRequestDetalhada(request)
+            retorno.extend(decodeRequestDetalhada(request))
+
+    return retorno
 
 def decodeRequestDetalhada(request):
     content = json.loads(request.decode('latin-1'))
@@ -61,3 +64,17 @@ def decodeRequestAdotada(request: bytes) -> list:
         dicionarioDiario["Vazao_Adotada"] = None
         listaOrdenada.append(dicionarioDiario)
     return listaOrdenada
+
+def decodeSedimentos(request: bytes) -> list:
+    content = json.loads(request.decode('latin-1'))
+
+    itens = content["items"]
+    listaOrdenada = list()
+    if itens != None:
+        for item in itens:
+            dicionarioDiario = item.copy()
+            dicionarioDiario.pop("codigoestacao")
+            listaOrdenada.append(dicionarioDiario)
+    else: #72980000
+        
+        dicionarioDiario["Hora_Medicao"] = None
