@@ -95,7 +95,7 @@ class Access:
         else:
             return maxRequests
 
-    def _defQtdDiasParam(self, dataComeco: datetime, dataFinal: datetime)->int:
+    def _defQtdDiasParam(self, dataComeco: datetime, dataFinal: datetime)->int: #de acordo com a API
         diferenca = (dataFinal - dataComeco).days
 
         if diferenca >=30:
@@ -106,8 +106,6 @@ class Access:
             return 14
         elif diferenca >= 7:
             return 7
-        elif diferenca >=5:
-            return 5
         elif diferenca >= 2:
             return 2
         else:
@@ -350,6 +348,66 @@ class Access:
             list: Lista de dicionários.
         """
         return asyncio.run(self._main_request_telemetrica(estacaoCodigo, dataComeco, dataFinal, token, tipo, qtdDownloadsAsync))
+
+    async def _main_request_sedimentos(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, horarioComeco='', horarioFinal='', qtdDownloadsAsync=20):
+        """_summary_
+
+        Args:
+            estacaoCodigo (int): _description_
+            dataComeco (str): _description_
+            dataFinal (str): _description_
+            token (str): _description_
+            qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
+        """
+        
+        diaFinal = self._validar_data(dataFinal)
+        diaComeco = self._validar_data (dataComeco)
+
+        cabecalho = self._criar_cabecalho(token)
+
+        diasRestantesParaDownload = (diaFinal - diaComeco).days
+
+        listaRespostaTasks = list()
+
+        url = self.urlApi + "/HidroSerieSedimentos/v1"
+
+        while diasRestantesParaDownload != 0 :
+            blocoAsync = list()
+
+            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
+                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
+                diaComeco += timedelta(days=qtdDiasParam)
+                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
+
+            async with aiohttp.ClientSession(headers=cabecalho) as session:
+                tasks = list()
+                for param in blocoAsync:
+                    tasks.append(self._download_url(session, url, param))
+                respostaTasks = await asyncio.gather(*tasks)
+                listaRespostaTasks.extend(respostaTasks)
+
+            diasRestantesParaDownload = (diaFinal - diaComeco).days
+
+        resposta = decodes.decode_list_bytes(listaRespostaTasks, tipo)
+
+        return resposta
+
+    def request_sedimentos(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20) -> list:
+        """_summary_
+
+        Args:
+            self (_type_): _description_
+            estacaoCodigo (int): _description_
+            dataComeco (str): _description_
+            dataFinal (str): _description_
+            token (str): _description_
+            qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
+
+        Returns:
+            list: _description_
+        """
+
+        return asyncio.run(self._main_request_sedimentos(estacaoCodigo, dataComeco, dataFinal, token, qtdDownloadsAsync=qtdDownloadsAsync))
 
     async def _download_url(self, session, url, params): 
         async with session.get(url, params=params) as response:
