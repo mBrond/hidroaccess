@@ -1,4 +1,5 @@
 tests\credenciais.txt
+standaloneTest.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

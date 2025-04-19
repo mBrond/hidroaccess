@@ -5,13 +5,51 @@ def decode_list_bytes(listaRespostaTasks: list, tipo='Adotada')->list:
     retorno = list()
     for request in listaRespostaTasks:
         if tipo == 'Adotada':
-            retorno.extend(decodeRequestAdotada(request))
+            retorno.extend(_decode_request_adotada(request))
         elif tipo =='Detalhada':
-            retorno.extend(decodeRequestDetalhada(request))
+            retorno.extend(_decode_request_detalhada(request))
+        elif tipo == 'Sedimento':
+            retorno.extend(_decode_request_sedimento(request))
 
     return retorno
 
-def decodeRequestDetalhada(request):
+def _decode_request_sedimento(request): #72980000 -> tem dado em 2000
+    content = json.loads(request.decode('latin-1'))
+    itens = content.get('items')
+    listaOrdenada = []
+
+    chaves = [
+        "Area_Molhada",
+        "Concentracao_PPM",
+        "Concentracao_da_Amostra_Extra",
+        "Condutividade_Eletrica",
+        "Cota_cm",
+        "Cota_de_Mediacao",
+        "Data_Hora_Dado",
+        "Data_Hora_Medicao_Liquida",
+        "Data_Ultima_Alteracao",
+        "Largura",
+        "Nivel_Consistencia",
+        "Numero_Medicao",
+        "Numero_Medicao_Liquida",
+        "Observacoes",
+        "Temperatura_da_Agua",
+        "Vazao_m3_s",
+        "Vel_Media",
+        "codigoestacao"
+    ]
+
+    if itens is not None:
+        for item in itens:
+            dicionarioDiario = {chave: item.get(chave) for chave in chaves}
+            listaOrdenada.append(dicionarioDiario)
+    else:
+        dicionarioDiario = {chave: None for chave in chaves}
+        listaOrdenada.append(dicionarioDiario)
+
+    return listaOrdenada
+
+def _decode_request_detalhada(request):
     content = json.loads(request.decode('latin-1'))
     itens = content['items']
     listaOrdenada = list()
@@ -36,7 +74,7 @@ def decodeRequestDetalhada(request):
         listaOrdenada.append(dicionarioDiario)
     return listaOrdenada
 
-def decodeRequestAdotada(request: bytes) -> list:
+def _decode_request_adotada(request: bytes) -> list:
     """_summary_
 
     Args:
@@ -64,17 +102,3 @@ def decodeRequestAdotada(request: bytes) -> list:
         dicionarioDiario["Vazao_Adotada"] = None
         listaOrdenada.append(dicionarioDiario)
     return listaOrdenada
-
-def decodeSedimentos(request: bytes) -> list:
-    content = json.loads(request.decode('latin-1'))
-
-    itens = content["items"]
-    listaOrdenada = list()
-    if itens != None:
-        for item in itens:
-            dicionarioDiario = item.copy()
-            dicionarioDiario.pop("codigoestacao")
-            listaOrdenada.append(dicionarioDiario)
-    else: #72980000
-        
-        dicionarioDiario["Hora_Medicao"] = None

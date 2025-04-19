@@ -2,7 +2,6 @@ import json
 import requests
 import aiohttp
 import asyncio
-import warnings
 import hidroaccess.decodes as decodes
 from datetime import datetime, timedelta
 
@@ -10,7 +9,12 @@ class Access:
     def __init__(self, id: str, senha: str) -> None:
         self.__id = id
         self.__senha = senha
+        #-------
         self.urlApi = 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas'
+
+        #-------
+        self._max_dias_convencional = 366
+
 
     def _set_senha(self, senha=str()) -> None:
         self.__senha = senha
@@ -89,6 +93,20 @@ class Access:
         }
         return param
 
+    def _param_sedimentos(self, codEstacao, diaInicial:datetime, diaFinal:datetime, filtroData="DATA_LEITURA", horarioInicial=None, horarioFinal=None):
+        param = {
+            'Código da Estação': codEstacao,
+            'Tipo Filtro Data': filtroData,
+            'Data Inicial (yyyy-MM-dd)': datetime.strftime(diaInicial, "%Y-%m-%d"),
+            'Data Final (yyyy-MM-dd)': datetime.strftime(diaFinal, "%Y-%m-%d"),
+
+        }
+        if horarioInicial is not None:
+            param['Horario Inicial (00:00:00)'] = horarioInicial
+        if horarioFinal is not None:
+            param['Horario Final (23:59:59)'] = horarioFinal
+        return param
+
     def _defineQtdDownloadsAsync(self, maxRequests, qtdDownloads)->int:
         if qtdDownloads < maxRequests:
             return qtdDownloads
@@ -111,6 +129,21 @@ class Access:
         else:
             return 1
 
+    def _def_qtd_dias_convencionais(self, dataComeco:datetime, dataFinal:datetime)->datetime: #TODO: melhorar doc
+        """Calcula a data final de um período respeitando o limite máximo de dias de uma requisição para estações do tipo Convencional, Sedimentos 
+
+        Args:
+            dataComeco (datetime): Data de início do período 
+            dataFinal (datetime): Data final do período
+
+        Returns:
+            datetime: Data final ajustada
+        """
+        finalPeriodo = dataComeco+timedelta(days=self._max_dias_convencional)
+        if finalPeriodo > dataFinal:
+            finalPeriodo = finalPeriodo-(finalPeriodo-dataFinal)
+        return finalPeriodo
+
     def _validar_data(self, data: str) ->datetime:
         try:
             return datetime.strptime(data, "%Y-%m-%d")
@@ -131,59 +164,6 @@ class Access:
 
         raise ValueError(f"Token inválido: {token}.")
 
-    #deprecated
-    def requestTelemetricaDetalhada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
-        """
-        !!!Utilizar requestTelemetricaDetalhadaAsync!!!
-        :param estacaoCodigo: Código de 8 dígitos
-        :param data: Data dos dados requisitados. Formato yyyy-MM-dd.
-        :param token: AcessToken adquirido
-        :param filtroData:
-        :param intervaloBusca: Intervalo das medições.
-        :return: Objeto 'response'.
-        """
-
-        warnings.warn("'requestTelemetricaDetalhada' é um método obsoleto e será removido!", category=DeprecationWarning, stacklevel=2)
-
-        url = self.urlApi+ "/HidroinfoanaSerieTelemetricaDetalhada/v1"
-
-        headers = {
-            'Authorization': 'Bearer '+token
-        }
-
-        params = self._criaParams(estacaoCodigo)[0]
-
-        return requests.get(url=url, headers = headers, params = params)
-
-    #deprecated
-    def requestTelemetricaAdotada(self, estacaoCodigo: int, data: str, token: str, intervaloBusca="HORA_24", filtroData = "DATA_LEITURA"):
-        """
-        !!!Utilizar versão requestTelemetricaAdotadaAsync!!!
-        :param estacaoCodigo: Código de 8 dígitos
-        :param data: Data dos dados requisitados. Formato yyyy-MM-dd.
-        :param token: AcessToken adquirido
-        :param filtroData:
-        :param intervaloBusca: Intervalo das medições.
-        :return: Objeto 'response'.
-        """ 
-
-        warnings.warn("'requestTelemetricaAdotada' é um método obsoleto e será removido!", category=DeprecationWarning, stacklevel=2)
-
-        url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
-
-        headers = {
-            'Authorization': 'Bearer '+token
-        }
-
-        params = {
-            'Código da Estação': estacaoCodigo,
-            'Tipo Filtro Data': filtroData,
-            'Data de Busca (yyyy-MM-dd)': data,
-            'Range Intervalo de busca': intervaloBusca
-        }
-
-        return requests.get(url=url, headers = headers, params = params)
-    
     def requestToken(self):
         """
         Requisita o token de autenticação da API com o ID e Senha
@@ -214,75 +194,6 @@ class Access:
             token = json.loads(tokenRequest.content)
             itens = token['items']
             return itens['tokenautenticacao']
-
-    #deprecated
-    async def requestTelemetricaAdotadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20):
-
-        warnings.warn("'requestTelemetricaAdotadaAsync' é um método obsoleto e será removido! Utilize request_telemetrica.", category=DeprecationWarning, stacklevel=2)
-
-        diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
-        diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
-
-        diasRestantesParaDownload = (diaFinal - diaComeco).days
-
-        url = self.urlApi + "/HidroinfoanaSerieTelemetricaAdotada/v1"
-
-        respostaLista = list()
-        qtdDiasParam = qtdDownloadsAsync+1 #garante que é maior
-
-        while diasRestantesParaDownload != 0 :
-            blocoAsync = list()
-
-            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
-                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
-                diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
-
-            async with aiohttp.ClientSession(headers=headers) as session:
-                tasks = list()
-                for param in blocoAsync:
-                    tasks.append(self._download_url(session, url, param))
-                resposta = await asyncio.gather(*tasks)
-                respostaLista.append(resposta)
-
-            diasRestantesParaDownload = (diaFinal - diaComeco).days
-            
-        return respostaLista
-    
-    #deprecated
-    async def requestTelemetricaDetalhadaAsync(self, estacaoCodigo: int, stringComeco: str, stringFinal: str, headers: dict, qtdDownloadsAsync=20) -> list:
-
-        warnings.warn("'requestTelemetricaDetalhadaAsync' é um método obsoleto e será removido! Utilize request_telemetrica.", category=DeprecationWarning, stacklevel=2)
-
-
-        diaFinal = datetime.strptime(stringFinal, "%Y-%m-%d")
-        diaComeco = datetime.strptime(stringComeco, "%Y-%m-%d")
-
-        diasRestantesParaDownload = (diaFinal - diaComeco).days
-
-        url = self.urlApi + "/HidroinfoanaSerieTelemetricaDetalhada/v1"
-
-        respostaLista = list()
-        qtdDiasParam = qtdDownloadsAsync+1 #garante que é maior
-
-        while diasRestantesParaDownload != 0 :
-            blocoAsync = list()
-
-            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
-                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
-                diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
-
-            async with aiohttp.ClientSession(headers=headers) as session:
-                tasks = list()
-                for param in blocoAsync:
-                    tasks.append(self._download_url(session, url, param))
-                resposta = await asyncio.gather(*tasks)
-                respostaLista.append(resposta)
-
-            diasRestantesParaDownload = (diaFinal - diaComeco).days
-            
-        return respostaLista
 
     async def _main_request_telemetrica(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo='Adotada', qtdDownloadsAsync=20) -> list:
         """_summary_
@@ -359,7 +270,7 @@ class Access:
             token (str): _description_
             qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
         """
-        
+        tipo = "Sedimento"
         diaFinal = self._validar_data(dataFinal)
         diaComeco = self._validar_data (dataComeco)
 
@@ -371,13 +282,13 @@ class Access:
 
         url = self.urlApi + "/HidroSerieSedimentos/v1"
 
-        while diasRestantesParaDownload != 0 :
+        while diasRestantesParaDownload > 0 :
             blocoAsync = list()
+            while(len(blocoAsync) <qtdDownloadsAsync and diaComeco < diaFinal):
+                diaFinalPeriodo = self._def_qtd_dias_convencionais(diaComeco, diaFinal)
+                blocoAsync.append(self._param_sedimentos(estacaoCodigo, diaComeco, diaFinalPeriodo))
+                diaComeco = diaFinalPeriodo+timedelta(days=1)
 
-            while (len(blocoAsync) <= qtdDownloadsAsync) and (diaComeco!=diaFinal):
-                qtdDiasParam = self._defQtdDiasParam(diaComeco, diaFinal)
-                diaComeco += timedelta(days=qtdDiasParam)
-                blocoAsync.append(self._param_unico(estacaoCodigo, "DATA_LEITURA", qtdDiasParam, diaComeco - timedelta(days=1)))
 
             async with aiohttp.ClientSession(headers=cabecalho) as session:
                 tasks = list()
@@ -386,7 +297,7 @@ class Access:
                 respostaTasks = await asyncio.gather(*tasks)
                 listaRespostaTasks.extend(respostaTasks)
 
-            diasRestantesParaDownload = (diaFinal - diaComeco).days
+            diasRestantesParaDownload = (diaFinal - diaComeco).days - 1
 
         resposta = decodes.decode_list_bytes(listaRespostaTasks, tipo)
 

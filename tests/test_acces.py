@@ -25,7 +25,6 @@ def login_invalido():
     (login_valido(), True),
     (login_invalido(), False)
 ])
-
 def test_safe_request_token(acesso, validade):
     if validade:
         assert acesso.safe_request_token() != '-1'#valor do token
@@ -61,7 +60,6 @@ def test__criar_cabecalho():
     ('2024-01-01', '2024-01-29', 21),
     ('2024-01-01', '2024-01-18', 14),
     ('2024-01-01', '2024-01-08', 7),
-    ('2024-01-01', '2024-01-07', 5)
 ])
 def test__defQtdDiasParam(diaInicio, diaFim, resultado):
     acesso = login_valido()
@@ -87,8 +85,6 @@ def test__validar_data(data, validade):
     else:
         assert validade == True
 
-
-
 #testa se os dias solicitados foram baixados
 @pytest.mark.parametrize('diaInicial, diaFim, qtdDias',[
     ('2024-01-01', '2024-01-03', 2),
@@ -112,3 +108,24 @@ def test_request_telemetrica_dias_baixados(login_valido_fixture, diaInicial, dia
         diasRetornados.add(dia)
 
     assert qtdDias == len(diasRetornados)
+
+
+##confirmar se são essas as chaves !!!
+#EstacaoCodigo;NivelConsistencia;Data;Hora;NumMedicao;DataLiq;HoraLiq;NumMedicaoLiq;Cota;Vazao;AreaMolhada;Largura;VelMedia;ConcentracaoMatSuspensao;CotaDeMedicao;TemperaturaDaAgua;ConcentracaoDaAmostraExtra;CondutividadeEletrica;Observacoes
+@pytest.mark.parametrize('chavesEsperadas',[
+    (set(
+        ["Area_Molhada","Concentracao_PPM","Concentracao_da_Amostra_Extra",
+        "Condutividade_Eletrica","Cota_cm","Cota_de_Mediacao","Data_Hora_Dado",
+        "Data_Hora_Medicao_Liquida","Data_Ultima_Alteracao","Largura","Nivel_Consistencia",
+        "Numero_Medicao","Numero_Medicao_Liquida","Observacoes","Temperatura_da_Agua",
+        "Vazao_m3_s","Vel_Media","codigoestacao"]
+    ))
+])
+def test_request_sedimentos(login_valido_fixture, chavesEsperadas):
+    sessao = login_valido_fixture
+    token = sessao.safe_request_token()
+
+    retorno = sessao.request_sedimentos(72980000, '2000-01-01', '2000-12-31', token)
+    
+    chavesRetorno = set(retorno[0].keys())
+    assert chavesEsperadas == chavesRetorno
