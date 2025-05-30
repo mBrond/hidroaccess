@@ -15,7 +15,6 @@ class Access:
         #-------
         self._max_dias_convencional = 366
 
-
     def _set_senha(self, senha=str()) -> None:
         self.__senha = senha
 
@@ -260,7 +259,23 @@ class Access:
         """
         return asyncio.run(self._main_request_telemetrica(estacaoCodigo, dataComeco, dataFinal, token, tipo, qtdDownloadsAsync))
 
-    async def _main_request_sedimentos(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, horarioComeco='', horarioFinal='', qtdDownloadsAsync=20):
+    def _seleciona_url_convencionais(self, tipo: str)->str:
+        """Retorna a URL de um endpoit
+
+        Args:
+            tipo (str): Tipo da estação
+
+        Returns:
+            str: url do endpoint na API
+        """
+        if tipo == 'Sedimento':
+            return self.urlApi + "/HidroSerieSedimentos/v1"
+        elif tipo == 'Chuva':
+            return self.urlApi + "/HidroSerieChuva/v1"
+        elif tipo == 'Cota':
+            return self.urlApi + "/HidroSerieCotas/v1"
+
+    async def _main_request_convencionais(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, tipo: str, horarioComeco='', horarioFinal='', qtdDownloadsAsync=20):
         """_summary_
 
         Args:
@@ -268,9 +283,9 @@ class Access:
             dataComeco (str): _description_
             dataFinal (str): _description_
             token (str): _description_
+            tipo (str): 
             qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
         """
-        tipo = "Sedimento"
         diaFinal = self._validar_data(dataFinal)
         diaComeco = self._validar_data (dataComeco)
 
@@ -280,7 +295,7 @@ class Access:
 
         listaRespostaTasks = list()
 
-        url = self.urlApi + "/HidroSerieSedimentos/v1"
+        url = self._seleciona_url_convencionais(tipo)
 
         while diasRestantesParaDownload > 0 :
             blocoAsync = list()
@@ -312,13 +327,21 @@ class Access:
             dataComeco (str): _description_
             dataFinal (str): _description_
             token (str): _description_
+            tipo (str): 
             qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
 
         Returns:
             list: _description_
         """
 
-        return asyncio.run(self._main_request_sedimentos(estacaoCodigo, dataComeco, dataFinal, token, qtdDownloadsAsync=qtdDownloadsAsync))
+        return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Sedimento", qtdDownloadsAsync=qtdDownloadsAsync))
+
+    def request_cota(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20)->list:
+        return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Cota", qtdDownloadsAsync=qtdDownloadsAsync))
+
+    def request_chuva(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20)->list:
+        return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Chuva", qtdDownloadsAsync=qtdDownloadsAsync))
+
 
     async def _download_url(self, session, url, params): 
         async with session.get(url, params=params) as response:
