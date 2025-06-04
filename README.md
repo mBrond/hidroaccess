@@ -37,6 +37,7 @@ Retorna um token (str) para validação de outras requisições. A obtenção do
 token = sessao.safe_request_token()
 ```
 ## Método *request_telemetrica()*
+Realiza a requisição de dados para uma estação telemétrica.
 Retorna uma lista de dicionários. Cada dicionário possui a chave 'Hora_Medicao' com a data e horário da medição correspondente.
 
 - estacao_codigo (int): valor númerico de oito dígitos correspondente a estação para consulta desejada
@@ -52,6 +53,50 @@ data_fim = '2020-01-05'
 tipo_dado = 'Detalhada'
 
 retorno = sessao.request_telemetrica(estacao_codigo, data_inicio, data_fim, token, tipo_dado)
+```
+
+## Método *request_sedimentos()*
+Realiza a requisição de dados de sedimentos de estações convencionais. Retorna uma lista de dicionários.
+
+- estacao_codigo (int): valor númerico correspondente a estação para consulta desejada
+- data_inicio (str): data inicial do período de consulta no formato YYYY-MM-DD
+- data_fim (str): data final do período de consulta no formato YYYY-MM-DD
+- token (str): token válido adquirido em *safe_request_token()* 
+
+```
+estacao_codigo = 
+data_inicio = '2020-01-01'
+data_fim = '2020-01-05'
+
+retorno = sessao.request_sedimentos(estacao_codigo, data_inicio, data_fim, token) 
+```
+
+## Método *request_cota()*
+Realiza a requisição de dados de cota de estações convencionais. Retorna uma lista de dicionários.
+
+- estacao_codigo (int): valor númerico correspondente a estação para consulta desejada
+- data_inicio (str): data inicial do período de consulta no formato YYYY-MM-DD
+- data_fim (str): data final do período de consulta no formato YYYY-MM-DD
+- token (str): token válido adquirido em *safe_request_token()* 
+
+
+```
+estacao_codigo = 
+data_inicio = '2020-01-01'
+data_fim = '2020-01-05'
+
+retorno = sessao.request_cota(estacao_codigo, data_inicio, data_fim, token) 
+```
+
+
+## Método *request_chuva()*
+Realiza a requisição de dados de chuva de estações convencionais. Retorna uma lista de dicionários.
+```
+estacao_codigo = 
+data_inicio = '2020-01-01'
+data_fim = '2020-01-05'
+
+retorno = sessao.request_chuva(estacao_codigo, data_inicio, data_fim, token) 
 ```
 
 ## Método *atualizar_credenciais()*

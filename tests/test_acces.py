@@ -109,9 +109,6 @@ def test_request_telemetrica_dias_baixados(login_valido_fixture, diaInicial, dia
 
     assert qtdDias == len(diasRetornados)
 
-
-##confirmar se são essas as chaves !!!
-#EstacaoCodigo;NivelConsistencia;Data;Hora;NumMedicao;DataLiq;HoraLiq;NumMedicaoLiq;Cota;Vazao;AreaMolhada;Largura;VelMedia;ConcentracaoMatSuspensao;CotaDeMedicao;TemperaturaDaAgua;ConcentracaoDaAmostraExtra;CondutividadeEletrica;Observacoes
 @pytest.mark.parametrize('chaves_esperadas_sedimentos',[
     (set(
         ["Area_Molhada","Concentracao_PPM","Concentracao_da_Amostra_Extra",
@@ -204,3 +201,37 @@ def test_request_chuva(login_valido_fixture, chaves_esperadas_chuvas):
         assert chaves_esperadas_chuvas == chaves_retorno
     else:
         assert False
+    
+@pytest.mark.parametrize('tipo, url_esperada', [
+    ('Sedimento', 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas/HidroSerieSedimentos/v1'), 
+    ('Chuva', 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas/HidroSerieChuva/v1'),
+    ('Cota', 'https://www.ana.gov.br/hidrowebservice/EstacoesTelemetricas/HidroSerieCotas/v1'),
+    ('AD', None)
+])
+def test_seleciona_url_convencionais(login_valido_fixture, tipo, url_esperada):
+
+    sessao = login_valido_fixture
+    url = sessao._seleciona_url_convencionais(tipo)
+    assert url_esperada == url
+
+@pytest.mark.parametrize('data_comeco, data_final, data_final_esperada',[
+    ('2020-01-01', '2024-01-01', '2021-01-01'),
+    ('2020-01-01', '2020-01-02', '2020-01-02'),
+])
+def test__def_qtd_dias_convencionais(data_comeco, data_final, data_final_esperada, login_valido_fixture):
+    """
+    Testa o método _def_qtd_dias_convencionais()
+    
+    """
+    sessao = login_valido_fixture
+
+    #conversao datetime
+    data_comeco = datetime.strptime(data_comeco, "%Y-%m-%d")
+    data_final = datetime.strptime(data_final, "%Y-%m-%d")
+    data_final_esperada = datetime.strptime(data_final_esperada, "%Y-%m-%d")
+
+    final_periodo = sessao._def_qtd_dias_convencionais(data_comeco, data_final)
+
+    print('\n',final_periodo, data_final_esperada)
+
+    assert data_final_esperada == final_periodo

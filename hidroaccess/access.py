@@ -92,7 +92,7 @@ class Access:
         }
         return param
 
-    def _param_sedimentos(self, codEstacao, diaInicial:datetime, diaFinal:datetime, filtroData="DATA_LEITURA", horarioInicial=None, horarioFinal=None):
+    def _param_convencionais(self, codEstacao, diaInicial:datetime, diaFinal:datetime, filtroData="DATA_LEITURA", horarioInicial=None, horarioFinal=None):
         param = {
             'Código da Estação': codEstacao,
             'Tipo Filtro Data': filtroData,
@@ -301,7 +301,7 @@ class Access:
             blocoAsync = list()
             while(len(blocoAsync) <qtdDownloadsAsync and diaComeco < diaFinal):
                 diaFinalPeriodo = self._def_qtd_dias_convencionais(diaComeco, diaFinal)
-                blocoAsync.append(self._param_sedimentos(estacaoCodigo, diaComeco, diaFinalPeriodo))
+                blocoAsync.append(self._param_convencionais(estacaoCodigo, diaComeco, diaFinalPeriodo))
                 diaComeco = diaFinalPeriodo+timedelta(days=1)
 
 
@@ -319,29 +319,50 @@ class Access:
         return resposta
 
     def request_sedimentos(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20) -> list:
-        """_summary_
+        """Realiza requisição de dados de sedimentos de uma estação convencional
 
         Args:
-            self (_type_): _description_
-            estacaoCodigo (int): _description_
-            dataComeco (str): _description_
-            dataFinal (str): _description_
-            token (str): _description_
-            tipo (str): 
-            qtdDownloadsAsync (int, optional): _description_. Defaults to 20.
+            estacaoCodigo (int): Código da estação
+            dataComeco (str): Data inicial do período a ser consultado.
+            dataFinal (str): Data final do período a ser consultado.
+            token (str): Token de autenticação
+            qtdDownloadsAsync (int, optional): Defaults to 20.
 
         Returns:
-            list: _description_
+            list: Lista de dicionários
         """
 
         return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Sedimento", qtdDownloadsAsync=qtdDownloadsAsync))
 
     def request_cota(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20)->list:
+        """Realiza requisição de dados de cota de uma estação convencional
+
+        Args:
+            estacaoCodigo (int): Código da estação
+            dataComeco (str): Data inicial do período a ser consultado.
+            dataFinal (str): Data final do período a ser consultado.
+            token (str): Token de autenticação
+            qtdDownloadsAsync (int, optional): Defaults to 20.
+
+        Returns:
+            list: Lista de dicionários
+        """
         return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Cota", qtdDownloadsAsync=qtdDownloadsAsync))
 
     def request_chuva(self, estacaoCodigo: int, dataComeco: str, dataFinal: str, token: str, qtdDownloadsAsync=20)->list:
-        return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Chuva", qtdDownloadsAsync=qtdDownloadsAsync))
+        """Realiza requisição de dados de chuva de uma estação convencional
 
+        Args:
+            estacaoCodigo (int): Código da estação
+            dataComeco (str): Data inicial do período a ser consultado.
+            dataFinal (str): Data final do período a ser consultado.
+            token (str): Token de autenticação
+            qtdDownloadsAsync (int, optional): Defaults to 20.
+
+        Returns:
+            list: Lista de dicionários
+        """
+        return asyncio.run(self._main_request_convencionais(estacaoCodigo, dataComeco, dataFinal, token, "Chuva", qtdDownloadsAsync=qtdDownloadsAsync))
 
     async def _download_url(self, session, url, params): 
         async with session.get(url, params=params) as response:

@@ -16,7 +16,6 @@ def decode_list_bytes(listaRespostaTasks: list, tipo='Adotada')->list:
             retorno.extend(_decode_request_chuva(request))
 
     return retorno
-
     
 def _decode_request_chuva(request):
     content = json.loads(request.decode('latin-1'))
